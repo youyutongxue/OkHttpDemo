@@ -9,3 +9,6 @@
 
 ##GET请求方式：同步阻塞、异步回调
 
+####client.newCall(request).execute()是同步的请求方法
+####client.newCall(request).enqueue(Callback callBack)是异步的请求方法，但是Callback里面的代码是执行在子线程的，因此不能更新UI。
+
