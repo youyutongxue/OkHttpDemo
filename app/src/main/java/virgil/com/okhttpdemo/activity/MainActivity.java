@@ -19,9 +19,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.LogRecord;
 
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import virgil.com.okhttpdemo.R;
 import virgil.com.okhttpdemo.adapter.MyRecyclerViewAdapter;
 import virgil.com.okhttpdemo.bean.MyDataBean;
@@ -70,7 +73,9 @@ public class MainActivity extends AppCompatActivity {
         //调用初始化控件的方法
         initView();
         //调用初始化数据的方法(Get同步阻塞的方式)
-        initDataBySynchronous();
+        //initDataBySynchronous();
+        //调用初始化数据的方法（Get异步阻塞的方式）
+        initDataByAsynchronous();
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -89,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
      * 初始化数据(Get同步阻塞的方式)
      */
     private void initDataBySynchronous() {
+        //开启子线程网络访问
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -97,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
                         .url(UrlConfig.BASEURL)
                         .build();
                 try {
-                    //获取响应对象
+                    //通过execute方法能够获取响应对象
                     Response response = mOkHttpClient.newCall(request).execute();
                     String json = response.body().string();
                     MyDataBean myDataBean = gson.fromJson(json, new TypeToken<MyDataBean>() {
@@ -109,5 +115,33 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }).start();
+    }
+
+    /**
+     * 初始化数据(Get异步回调的方式)
+     */
+    private void initDataByAsynchronous() {
+        //创建请求对象
+        Request request = new Request.Builder()
+                .url(UrlConfig.BASEURL)
+                .build();
+        //enqueue异步回调
+        mOkHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                handler.sendEmptyMessage(0);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                ResponseBody body = response.body();
+                String json = body.string();
+                MyDataBean myDataBean = gson.fromJson(json, new TypeToken<MyDataBean>() {
+                }.getType());
+                mTotalList = myDataBean.getData().getItems();
+                handler.sendEmptyMessage(1);
+            }
+        });
     }
 }
